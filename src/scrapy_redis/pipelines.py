@@ -58,6 +58,7 @@ class RedisPipeline(object):
         return cls.from_settings(crawler.settings)
 
     def process_item(self, item, spider):
+        # スレッド内でメソッドを実行
         return deferToThread(self._process_item, item, spider)
 
     def _process_item(self, item, spider):

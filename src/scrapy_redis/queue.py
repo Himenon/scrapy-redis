@@ -57,6 +57,7 @@ class Base(object):
 
     def pop(self, timeout=0):
         """Pop a request"""
+        # 禁止しているのか...
         raise NotImplementedError
 
     def clear(self):

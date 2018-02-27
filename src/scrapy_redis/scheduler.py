@@ -34,6 +34,7 @@ class Scheduler(object):
     def __init__(self, server,
                  persist=False,
                  flush_on_start=False,
+                 # デフォルト値から取得
                  queue_key=defaults.SCHEDULER_QUEUE_KEY,
                  queue_cls=defaults.SCHEDULER_QUEUE_CLASS,
                  dupefilter_key=defaults.SCHEDULER_DUPEFILTER_KEY,
@@ -105,6 +106,7 @@ class Scheduler(object):
 
         # Support serializer as a path to a module.
         if isinstance(kwargs.get('serializer'), six.string_types):
+            # 読み込み？ Stringから
             kwargs['serializer'] = importlib.import_module(kwargs['serializer'])
 
         server = connection.from_settings(settings)
@@ -124,6 +126,8 @@ class Scheduler(object):
         self.spider = spider
 
         try:
+            # load_objectは何をやっチエル？
+            # queue_clsはdefault.pyよりstrできている
             self.queue = load_object(self.queue_cls)(
                 server=self.server,
                 spider=spider,
@@ -134,6 +138,7 @@ class Scheduler(object):
             raise ValueError("Failed to instantiate queue class '%s': %s",
                              self.queue_cls, e)
 
+        # 重複用のフィルター
         self.df = load_object(self.dupefilter_cls).from_spider(spider)
 
         if self.flush_on_start:
@@ -142,20 +147,28 @@ class Scheduler(object):
         if len(self.queue):
             spider.log("Resuming crawl (%d requests scheduled)" % len(self.queue))
 
+    # CLose
     def close(self, reason):
+        # Closeさせない方針ｗｗｗ
+        # SCHEDULER_PERSIST=True にすると、redisにqueueが溜まった状態になる
         if not self.persist:
             self.flush()
 
+    # 保存
     def flush(self):
         self.df.clear()
         self.queue.clear()
 
+    # https://doc.scrapy.org/en/0.9/experimental/scheduler-middleware.html#writing-your-own-scheduler-middleware
     def enqueue_request(self, request):
+        # 重複判定
         if not request.dont_filter and self.df.request_seen(request):
             self.df.log(request, self.spider)
             return False
+        # 多分、未実装
         if self.stats:
             self.stats.inc_value('scheduler/enqueued/redis', spider=self.spider)
+        # キューをpushする
         self.queue.push(request)
         return True
 
